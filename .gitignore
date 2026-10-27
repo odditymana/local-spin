@@ -1,0 +1,11 @@
+# 音源ファイル（リポジトリに含めない）
+*.mp3
+*.wav
+*.flac
+*.aiff
+*.aif
+*.m4a
+*.ogg
+
+# macOS が自動で作るファイル
+.DS_Store
