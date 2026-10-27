@@ -13,6 +13,9 @@ const pitchValue = document.getElementById("pitch-value");
 const speedDisplay = document.getElementById("speed-display");
 const speedAnnouncer = document.getElementById("speed-announcer");
 const pitchResetButton = document.getElementById("pitch-reset");
+const seekBar = document.getElementById("seek-bar");
+const currentTimeText = document.getElementById("current-time");
+const durationText = document.getElementById("duration");
 const record = document.querySelector(".record");
 
 // 今読み込んでいる曲のURL（次の曲を読み込むときに解放するため保存しておく）
@@ -84,6 +87,7 @@ async function loadFile(file) {
       fileName.textContent = file.name;
       message.textContent = error.message;
       playButton.disabled = true;
+      seekBar.disabled = true;
       return;
     }
   }
@@ -97,6 +101,7 @@ async function loadFile(file) {
   // （アップロードではないので、外部には送信されない）
   currentUrl = URL.createObjectURL(source);
   audio.src = currentUrl;
+  resetPosition(); // 曲の長さが分かるまで、時間表示とシークバーを初期状態に戻す
 
   // 曲名を表示し、前のエラーを消して、再生ボタンを押せるようにする
   fileName.textContent = file.name;
@@ -165,6 +170,7 @@ function showPlaybackError() {
   // 例：ALAC（.m4a）は Safari 以外では再生できないので、ここで案内する
   message.textContent = "この形式はこのブラウザで再生できません。FLAC などをお試しください。";
   playButton.disabled = true;
+  seekBar.disabled = true;
 }
 
 // ボタンを押したら、止まっていれば再生、再生中なら停止（一時停止）する
@@ -295,6 +301,77 @@ pitchSlider.addEventListener("input", updateSpeed);
 
 // 最初の表示を整える（ブラウザが前回の選択を復元している場合にも合わせるため）
 updateSpeed();
+
+// ===== 再生位置（経過時間・シークバー） =====
+// シークバーをドラッグしている間は true（その間は再生位置でつまみを動かさない）
+let isDraggingSeekBar = false;
+
+// 秒を "1:23" の形にする（曲の長さが分からないうちは 0 として扱う）
+function formatTime(seconds) {
+  if (!Number.isFinite(seconds)) {
+    seconds = 0;
+  }
+  const minutes = Math.floor(seconds / 60);
+  const restSeconds = Math.floor(seconds % 60);
+  return minutes + ":" + String(restSeconds).padStart(2, "0"); // 秒は2桁にそろえる（例：1:05）
+}
+
+// 秒を、読み上げ用に "1分23秒" の形にする
+function formatTimeForSpeech(seconds) {
+  if (!Number.isFinite(seconds)) {
+    seconds = 0;
+  }
+  return Math.floor(seconds / 60) + "分" + Math.floor(seconds % 60) + "秒";
+}
+
+// 今の再生位置を、時間表示とシークバーに反映する
+function updatePosition() {
+  currentTimeText.textContent = formatTime(audio.currentTime);
+  // ドラッグ中につまみを書き換えると、つまみが指から逃げてしまうので書き換えない
+  if (!isDraggingSeekBar) {
+    seekBar.value = audio.currentTime;
+  }
+  seekBar.setAttribute("aria-valuetext",
+    formatTimeForSpeech(audio.currentTime) + " / " + formatTimeForSpeech(audio.duration));
+}
+
+// 新しい曲を読み込んだときに、時間表示とシークバーを初期状態に戻す
+function resetPosition() {
+  seekBar.disabled = true; // 曲の長さが分かるまでは操作できない
+  seekBar.max = 0;
+  seekBar.value = 0;
+  durationText.textContent = formatTime(0);
+  currentTimeText.textContent = formatTime(0);
+}
+
+// 曲の長さが分かったとき（loadedmetadata）
+audio.addEventListener("loadedmetadata", () => {
+  seekBar.max = audio.duration;
+  seekBar.disabled = false;
+  durationText.textContent = formatTime(audio.duration);
+  updatePosition();
+});
+
+// 再生位置が進んだとき（再生中は1秒に4回ほど起きる。シークしたときも起きる）
+audio.addEventListener("timeupdate", updatePosition);
+
+// シークバーを動かしたとき（ドラッグ中もキー操作でも起きる）
+seekBar.addEventListener("input", () => {
+  audio.currentTime = Number(seekBar.value);
+  currentTimeText.textContent = formatTime(audio.currentTime);
+});
+
+// シークバーを押したらドラッグ中、離したらドラッグ終わり
+// （シークバーの外で指を離すこともあるので、離したことは画面全体で受け取る）
+seekBar.addEventListener("pointerdown", () => {
+  isDraggingSeekBar = true;
+});
+window.addEventListener("pointerup", () => {
+  isDraggingSeekBar = false;
+});
+window.addEventListener("pointercancel", () => {
+  isDraggingSeekBar = false;
+});
 
 // ===== 回転するレコード =====
 // 33⅓回転のレコードは 1分（60秒）で 33⅓周 する → 1周 1.8秒

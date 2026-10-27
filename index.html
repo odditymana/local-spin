@@ -25,12 +25,37 @@
   </header>
 
   <main class="deck">
-    <!-- 台座とレコード（見た目だけの装飾なので、読み上げ対象から外す） -->
-    <div class="turntable" aria-hidden="true">
-      <div class="record">
-        <!-- ラベルの文字は、回っていることを目で分かるようにする印も兼ねる -->
-        <div class="record-label"><span class="record-label-text">LOCAL SPIN</span></div>
+    <!-- デッキ：台座＋レコード＋トーンアーム（見た目だけの部品なので、読み上げ対象から外す。
+         再生位置の操作はシークバーで行う） -->
+    <div class="deck-area" aria-hidden="true">
+      <div class="turntable">
+        <div class="record">
+          <!-- ラベルの文字は、回っていることを目で分かるようにする印も兼ねる -->
+          <div class="record-label"><span class="record-label-text">LOCAL SPIN</span></div>
+        </div>
       </div>
+
+      <!-- トーンアーム
+           座標は「台座の直径 = 100」とした値。デッキの横幅は台座の 1.3 倍なので、横は 130 まで。
+           レコードの中心は (50, 50)、アームの支点は (116, 16) -->
+      <svg class="tonearm" viewBox="0 0 130 100">
+        <!-- 支点の台（回らない） -->
+        <circle class="tonearm-base" cx="116" cy="16" r="7" />
+
+        <!-- 回る部分。支点を原点にして「真下向き」に描き、transform で支点へ移動して回す
+             rotate の角度：27.4 で針先が一番外側の溝、48.0 で一番内側の溝（main.js で再生位置に合わせて変える） -->
+        <g id="tonearm-arm" transform="translate(116 16) rotate(27.4)">
+          <!-- カウンターウェイト（支点の後ろのおもり） -->
+          <!-- （支点の台の半径 7 と重ならないよう、中心を支点から 12 離し、半径を 3 にしている） -->
+          <circle class="tonearm-weight" cx="0" cy="-12" r="3" />
+          <!-- アーム（まっすぐな棒）。カウンターウェイトからヘッドシェルまでつなぐ -->
+          <rect class="tonearm-rod" x="-0.8" y="-12" width="1.6" height="76" rx="0.8" />
+          <!-- ヘッドシェル（先端の小さな四角）。針先がちょうど長さ 70 の位置に来る -->
+          <rect class="tonearm-head" x="-3" y="63" width="6" height="9" rx="1" />
+          <!-- 支点の軸 -->
+          <circle class="tonearm-pivot" cx="0" cy="0" r="3" />
+        </g>
+      </svg>
     </div>
 
     <!-- 操作パネル -->
@@ -84,6 +109,15 @@
             <button type="button" id="pitch-reset" class="pitch-reset">0に戻す</button>
           </div>
         </div>
+      </div>
+
+      <!-- 再生位置：経過時間／曲の長さと、シークバー（曲を読み込むまでは操作できない） -->
+      <div class="seek">
+        <div class="seek-header">
+          <label for="seek-bar" class="control-title">再生位置</label>
+          <p class="seek-time"><span id="current-time">0:00</span> / <span id="duration">0:00</span></p>
+        </div>
+        <input type="range" id="seek-bar" class="seek-bar" min="0" max="0" step="1" value="0" disabled>
       </div>
 
       <!-- エラーメッセージ（表示されたらすぐ読み上げる） -->
