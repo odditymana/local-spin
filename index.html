@@ -37,26 +37,60 @@
     <section class="panel" aria-labelledby="control-heading">
       <h2 id="control-heading" class="visually-hidden">操作</h2>
 
-      <!-- 再生／停止：ファイルを読み込むまでは押せない -->
-      <button type="button" id="play-button" disabled>再生</button>
-      <!-- エラーメッセージ（表示されたらすぐ読み上げる） -->
-      <p id="message" role="alert"></p>
+      <!-- 現在の再生速度（大きく表示）
+           スライダーを動かすたびに読み上げると、スライダー自身の読み上げと重なるので aria-live は付けない -->
+      <p class="speed">
+        <span class="control-title">速度</span>
+        <span id="speed-display" class="speed-value">100.0%</span>
+      </p>
+      <!-- 回転数や「0に戻す」で速度が変わったときだけ、ここに書いて読み上げる（画面には出さない） -->
+      <p id="speed-announcer" class="visually-hidden" aria-live="polite"></p>
 
-      <!-- 回転数：33／45／スクリューの3択（矢印キーで切り替えられる） -->
-      <fieldset>
-        <legend>回転数</legend>
-        <label><input type="radio" name="speed-mode" value="33" checked> 33回転</label>
-        <label><input type="radio" name="speed-mode" value="45"> 45回転</label>
-        <label><input type="radio" name="speed-mode" value="screw"> スクリュー</label>
+      <!-- 回転数：33／45／スクリューの3択
+           見た目はボタンだが、中身はラジオ（矢印キーで切り替えられる） -->
+      <fieldset class="mode">
+        <legend class="control-title">回転数</legend>
+        <div class="mode-options">
+          <label class="mode-option">
+            <input type="radio" name="speed-mode" value="33" class="visually-hidden" checked>
+            <span>33回転</span>
+          </label>
+          <label class="mode-option">
+            <input type="radio" name="speed-mode" value="45" class="visually-hidden">
+            <span>45回転</span>
+          </label>
+          <label class="mode-option">
+            <input type="radio" name="speed-mode" value="screw" class="visually-hidden">
+            <span>スクリュー</span>
+          </label>
+        </div>
       </fieldset>
 
-      <!-- ピッチ：-8％〜+8％、0.1％刻み -->
-      <label for="pitch-slider">ピッチ</label>
-      <input type="range" id="pitch-slider" min="-8" max="8" step="0.1" value="0">
-      <output id="pitch-value" for="pitch-slider">0.0%</output>
+      <!-- ピッチ：-8％〜+8％、0.1％刻みの縦フェーダー（Technics と同じく上が −、下が ＋） -->
+      <div class="pitch">
+        <label for="pitch-slider" class="control-title">ピッチ</label>
+        <div class="pitch-body">
+          <div class="fader">
+            <!-- 目盛り（飾りなので読み上げない。値はスライダーの aria-valuetext で伝える） -->
+            <div class="fader-scale" aria-hidden="true">
+              <span class="fader-scale-top">−8</span>
+              <span class="fader-scale-zero">0</span>
+              <span class="fader-scale-bottom">+8</span>
+            </div>
+            <input type="range" id="pitch-slider" class="fader-input" min="-8" max="8" step="0.1" value="0">
+          </div>
+          <div class="pitch-side">
+            <output id="pitch-value" class="pitch-value" for="pitch-slider">0.0%</output>
+            <button type="button" id="pitch-reset" class="pitch-reset">0に戻す</button>
+          </div>
+        </div>
+      </div>
 
-      <!-- 現在の再生速度（変わったら読み上げる） -->
-      <p>速度：<span id="speed-display" aria-live="polite">100.0%</span></p>
+      <!-- エラーメッセージ（表示されたらすぐ読み上げる） -->
+      <p id="message" class="message" role="alert"></p>
+
+      <!-- 再生／停止：ファイルを読み込むまでは押せない -->
+      <button type="button" id="play-button" class="play-button" disabled>再生</button>
     </section>
 
     <!-- 音を鳴らす本体（画面には表示しない） -->
@@ -64,7 +98,7 @@
   </main>
 
   <footer class="note">
-    <p>音源はこのブラウザの中だけで処理し、外部には送信しません。</p>
+    <p>音源はブラウザ内だけで処理され、外部に送信されません。</p>
   </footer>
 
   <!-- ファイルをドラッグしている間だけ、画面全体に出す表示（見た目だけなので読み上げない） -->

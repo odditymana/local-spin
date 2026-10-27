@@ -11,6 +11,8 @@ const speedModeRadios = document.querySelectorAll('input[name="speed-mode"]');
 const pitchSlider = document.getElementById("pitch-slider");
 const pitchValue = document.getElementById("pitch-value");
 const speedDisplay = document.getElementById("speed-display");
+const speedAnnouncer = document.getElementById("speed-announcer");
+const pitchResetButton = document.getElementById("pitch-reset");
 const record = document.querySelector(".record");
 
 // 今読み込んでいる曲のURL（次の曲を読み込むときに解放するため保存しておく）
@@ -227,14 +229,65 @@ function updateSpeed() {
   audio.defaultPlaybackRate = rate;
 
   // 画面の表示を更新する
+  const speedText = (rate * 100).toFixed(1) + "%";
   pitchValue.textContent = formatPitch(pitch);
-  pitchSlider.setAttribute("aria-valuetext", formatPitch(pitch)); // スクリーンリーダーに "+1.5%" と読ませる
-  speedDisplay.textContent = (rate * 100).toFixed(1) + "%";
+  speedDisplay.textContent = speedText;
+  // スクリーンリーダーには、スライダーを動かしたときに「+1.5%、速度 101.5%」と1回だけ読ませる
+  pitchSlider.setAttribute("aria-valuetext", formatPitch(pitch) + "、速度 " + speedText);
+}
+
+// スライダー以外で速度が変わったとき（回転数・「0に戻す」）に、新しい速度を読み上げる
+function announceSpeed() {
+  speedAnnouncer.textContent = "速度 " + speedDisplay.textContent;
 }
 
 // 回転数のラジオが切り替わったとき
 speedModeRadios.forEach((radio) => {
-  radio.addEventListener("change", updateSpeed);
+  radio.addEventListener("change", () => {
+    updateSpeed();
+    announceSpeed();
+  });
+});
+
+// フェーダーのキー操作
+// 縦向きのスライダーは、キーとつまみの動く向きがブラウザによって違うことがある
+// （例：Chrome では PageDown でつまみが上へ動く）。
+// そこで、つまみが下へ動く（＋方向）キーと上へ動く（−方向）キーを自分で決めて、どのブラウザでも同じ動きにする。
+pitchSlider.addEventListener("keydown", (event) => {
+  let pitch = Number(pitchSlider.value);
+
+  if (event.key === "ArrowDown") {
+    pitch += 0.1;          // 下へ（＋方向）0.1%
+  } else if (event.key === "ArrowUp") {
+    pitch -= 0.1;          // 上へ（−方向）0.1%
+  } else if (event.key === "PageDown") {
+    pitch += 1;            // 下へ 1%
+  } else if (event.key === "PageUp") {
+    pitch -= 1;            // 上へ 1%
+  } else if (event.key === "End") {
+    pitch = 8;             // 一番下（+8%）
+  } else if (event.key === "Home") {
+    pitch = -8;            // 一番上（−8%）
+  } else {
+    return;                // それ以外のキー（← → など）は、ブラウザ標準の動きに任せる
+  }
+
+  event.preventDefault();  // ブラウザ標準の動きを止める（二重に動かないように）
+
+  // 0.1 を足し引きすると 0.30000000000000004 のような誤差が出るので、小数第1位に丸める
+  // そのうえで −8〜+8 の範囲に収める
+  pitch = Math.round(pitch * 10) / 10;
+  pitch = Math.min(8, Math.max(-8, pitch));
+
+  pitchSlider.value = String(pitch);
+  updateSpeed(); // value を書き換えても input イベントは起きないので、自分で呼ぶ
+});
+
+// 「0に戻す」を押したとき
+pitchResetButton.addEventListener("click", () => {
+  pitchSlider.value = "0";
+  updateSpeed();
+  announceSpeed();
 });
 
 // ピッチのスライダーを動かしている間（input は動かすたびに起きる）

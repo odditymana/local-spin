@@ -6,10 +6,10 @@
   --color-bg: #1e1f22;          /* 背景（チャコールグレー） */
   --color-surface: #2a2c31;     /* パネルやボタンの面 */
   --color-plinth: #34363c;      /* レコードの下に敷く台座 */
-  --color-border: #4a4d55;      /* 枠線 */
+  --color-border: #767a83;      /* 枠線・フェーダーの溝（パネルとの差 3:1 以上） */
   --color-text: #ececec;        /* 本文 */
   --color-text-muted: #a8a8ad;  /* 補足の文字 */
-  --color-accent: #c8412f;      /* ラベルの赤（面に使う。上に乗せる文字は白） */
+  --color-accent: #d04431;      /* ラベルの赤（面に使う。白い文字と 4.5:1 以上、パネルと 3:1 以上） */
   --color-accent-light: #ff6b57; /* 暗い背景の上に置く差し色（文字にも使える明るさ） */
   --color-focus: #ffd166;       /* キーボード操作中のフォーカス枠 */
 
@@ -165,8 +165,8 @@ body {
   right: 0;
   text-align: center;
   color: #fff;
-  /* 文字の大きさはレコードの大きさに合わせる（台座の直径の 3.5%） */
-  font: bold calc(var(--plinth-size) * 0.035) / 1 sans-serif;
+  /* 文字の大きさはレコードの大きさに合わせる（台座の直径の 2.3%） */
+  font: bold calc(var(--plinth-size) * 0.023) / 1 sans-serif;
   letter-spacing: 0.1em;
 }
 
@@ -183,13 +183,240 @@ body {
   transform: translate(-50%, -50%);
 }
 
-/* 操作パネル（中の部品の見た目は、次の手順で整える） */
+/* ===== 操作パネル ===== */
+/* 上から：速度／回転数／ピッチ／メッセージ／再生ボタン の縦並び */
 .panel {
   width: 100%;
   max-width: 420px;
   padding: var(--gap);
   border-radius: 12px;
   background: var(--color-surface);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* 「速度」「回転数」「ピッチ」の小さな見出し */
+.control-title {
+  display: block;
+  margin-bottom: 6px;
+  padding: 0;
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+  letter-spacing: 0.1em;
+}
+
+/* --- 速度 --- */
+.speed {
+  margin: 0;
+}
+
+.speed-value {
+  display: block;
+  font-size: clamp(2.75rem, 5vw, 4rem);
+  font-weight: bold;
+  /* 行の高さに余裕を持たせる（詰めすぎると、フォントによっては数字の上が上の行にはみ出す） */
+  line-height: 1.3;
+  font-variant-numeric: tabular-nums; /* 数字の幅をそろえ、値が変わっても表示が左右にぶれないようにする */
+}
+
+/* --- 回転数（ボタン型のラジオ） --- */
+.mode {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.mode-options {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr); /* 3つを同じ幅で横に並べる */
+  gap: 8px;
+}
+
+/* 見た目のボタンは、ラジオのすぐ後ろの span で作る */
+.mode-option span {
+  display: block;
+  padding: 10px 4px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: var(--color-plinth);
+  text-align: center;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.mode-option span:hover {
+  border-color: var(--color-text-muted);
+}
+
+/* 選ばれているボタン：ラベルの赤に白い文字 */
+.mode-option input:checked + span {
+  border-color: var(--color-accent);
+  background: var(--color-accent);
+  color: #fff;
+  font-weight: bold;
+}
+
+/* 隠したラジオにフォーカスが来たら、見た目のボタンに枠を出す */
+.mode-option input:focus-visible + span {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+/* --- ピッチ（縦フェーダー） --- */
+.pitch {
+  /* PC では、パネルの残りの高さをすべてピッチに使う */
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.pitch-body {
+  height: 240px;                /* スマホ：フェーダーの長さを決める（決めないと縦に伸び続ける） */
+  display: flex;
+  align-items: stretch;
+  gap: 24px;
+}
+
+.fader {
+  display: flex;
+  gap: 8px;
+}
+
+/* 目盛り（−8／0／+8）。つまみの中心の高さに合わせて置く */
+.fader-scale {
+  position: relative;
+  width: 2em;
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.fader-scale span {
+  position: absolute;
+  right: 0;
+  transform: translateY(-50%);  /* 文字の中心を、指定した高さに合わせる */
+}
+
+/* つまみの高さ（20px）の半分だけ内側が、−8 と +8 の位置になる */
+.fader-scale-top    { top: 10px; }
+.fader-scale-zero   { top: 50%; }
+.fader-scale-bottom { top: calc(100% - 10px); }
+
+/* フェーダー本体
+   writing-mode: vertical-lr（縦書き）にすると、スライダーが縦向きになり、最小値（−8）が上に来る */
+.fader-input {
+  writing-mode: vertical-lr;
+  -webkit-appearance: none;     /* ブラウザ標準の見た目を消して、自分で描く */
+  appearance: none;
+  width: 40px;
+  height: 100%;
+  margin: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+/* 溝（Chrome・Safari 用） */
+.fader-input::-webkit-slider-runnable-track {
+  width: 6px;
+  border-radius: 3px;
+  background: var(--color-border);
+}
+
+/* つまみ（Chrome・Safari 用）：フェーダーキャップに見えるよう、横長の四角に中央線 */
+.fader-input::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 40px;
+  height: 20px;
+  margin-left: -17px;           /* 溝（6px）の中央に置く：(6 − 40) ÷ 2 */
+  border-radius: 3px;
+  background: linear-gradient(#e0e0e0 0 45%, #333 45% 55%, #e0e0e0 55%);
+}
+
+/* 溝（Firefox 用） */
+.fader-input::-moz-range-track {
+  width: 6px;
+  border-radius: 3px;
+  background: var(--color-border);
+}
+
+/* つまみ（Firefox 用） */
+.fader-input::-moz-range-thumb {
+  width: 40px;
+  height: 20px;
+  border: 0;
+  border-radius: 3px;
+  background: linear-gradient(#e0e0e0 0 45%, #333 45% 55%, #e0e0e0 55%);
+}
+
+/* ピッチの値と「0に戻す」 */
+.pitch-side {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.pitch-value {
+  font-size: 1.5rem;
+  font-weight: bold;
+  font-variant-numeric: tabular-nums;
+}
+
+.pitch-reset {
+  padding: 8px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: var(--color-plinth);
+  color: var(--color-text);
+  font: inherit;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.pitch-reset:hover {
+  border-color: var(--color-text-muted);
+}
+
+/* --- エラーメッセージ --- */
+.message {
+  margin: 0;
+  color: var(--color-accent-light);
+}
+
+/* 空のときは場所を取らない */
+.message:empty {
+  display: none;
+}
+
+/* --- 再生／停止（パネルで一番目立たせる） --- */
+.play-button {
+  width: 100%;
+  padding: 18px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--color-accent);
+  color: #fff;
+  font: inherit;
+  font-size: 1.5rem;
+  font-weight: bold;
+  letter-spacing: 0.2em;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.play-button:hover:not(:disabled) {
+  background: #b23826;          /* 少し暗い赤 */
+}
+
+/* ファイルを読み込む前など、押せないとき */
+.play-button:disabled {
+  background: var(--color-plinth);
+  color: var(--color-text-muted);
+  cursor: not-allowed;
 }
 
 /* ===== 下の注記 ===== */
@@ -229,6 +456,18 @@ body {
     align-items: center;
     padding: var(--gap);
     padding-top: 0;
+  }
+
+  /* 操作パネルの高さを台座にそろえる */
+  .panel {
+    height: var(--plinth-size);
+  }
+
+  /* フェーダーは、パネルの残りの高さいっぱいに伸ばす */
+  .pitch-body {
+    flex: 1;
+    height: auto;
+    min-height: 160px;          /* 画面が低いときでも、最低限の長さを確保する */
   }
 
   .note {
