@@ -16,8 +16,15 @@ const speedDisplay = document.getElementById("speed-display");
 // 今読み込んでいる曲のURL（次の曲を読み込むときに解放するため保存しておく）
 let currentUrl = null;
 
+// 読み込みの通し番号。AIFF の変換を待っている間に別のファイルが読み込まれたら、
+// 古いほうの結果を捨てるために使う（最新の番号の読み込みだけを反映する）
+let latestLoadNumber = 0;
+
 // 音声ファイルとして受け付ける拡張子の一覧（m4a は AAC・ALAC、oga は Ogg の音声）
-const AUDIO_EXTENSIONS = ["mp3", "wav", "flac", "aiff", "aif", "m4a", "ogg", "oga"];
+const AUDIO_EXTENSIONS = ["mp3", "wav", "flac", "aiff", "aif", "aifc", "m4a", "ogg", "oga"];
+
+// WAV に変換してから再生する拡張子（AIFF・AIFF-C）
+const AIFF_EXTENSIONS = ["aiff", "aif", "aifc"];
 
 // 回転数ごとの基準速度（33回転を 1.0 とする）
 // 33回転は正確には 33⅓回転（= 100 / 3）
@@ -32,15 +39,51 @@ const BASE_SPEEDS = {
 // 種類名（file.type）が audio/ で始まる、または拡張子が一覧にあれば受け付ける
 // （種類名が空だったり、.ogg が "video/ogg" になったりするブラウザがあるため両方見る）
 function isAudioFile(file) {
-  const extension = file.name.split(".").pop().toLowerCase(); // 最後の "." より後ろ
-  return file.type.startsWith("audio/") || AUDIO_EXTENSIONS.includes(extension);
+  return file.type.startsWith("audio/") || AUDIO_EXTENSIONS.includes(getExtension(file));
+}
+
+// ファイル名の拡張子（最後の "." より後ろ）を小文字で返す
+function getExtension(file) {
+  return file.name.split(".").pop().toLowerCase();
 }
 
 // 「ファイルを選ぶ」とドロップの両方から呼ばれる共通の処理
-function loadFile(file) {
+// AIFF の変換でファイルの中身を読むのを待つため、async（途中で待てる関数）にしている
+async function loadFile(file) {
+  // この読み込みに番号を振る
+  latestLoadNumber += 1;
+  const loadNumber = latestLoadNumber;
+
   if (!isAudioFile(file)) {
     fileName.textContent = "音声ファイルを選んでください（" + file.name + " は読み込めません）";
     return;
+  }
+
+  // audio に渡すもの。ふつうは選ばれたファイルそのもの
+  let source = file;
+
+  // AIFF は、ブラウザ内で WAV に変換してから渡す（変換の中身は aiff-to-wav.js）
+  if (AIFF_EXTENSIONS.includes(getExtension(file))) {
+    fileName.textContent = file.name + "（WAV に変換中…）";
+    try {
+      const arrayBuffer = await file.arrayBuffer(); // ファイルの中身をバイト列として読む
+      // 待っている間に別のファイルが読み込まれていたら、この結果は捨てる
+      if (loadNumber !== latestLoadNumber) {
+        return;
+      }
+      source = aiffToWav(arrayBuffer);
+    } catch (error) {
+      // 失敗した場合も、すでに新しい読み込みがあれば何もしない
+      if (loadNumber !== latestLoadNumber) {
+        return;
+      }
+      // 変換できなかったときは理由を表示し、再生できない状態にする
+      audio.pause();
+      fileName.textContent = file.name;
+      message.textContent = error.message;
+      playButton.disabled = true;
+      return;
+    }
   }
 
   // 前の曲のURLを解放する（メモリの後片付け）
@@ -50,7 +93,7 @@ function loadFile(file) {
 
   // 手元のファイルに、このブラウザの中だけで使えるURLを付けて audio に渡す
   // （アップロードではないので、外部には送信されない）
-  currentUrl = URL.createObjectURL(file);
+  currentUrl = URL.createObjectURL(source);
   audio.src = currentUrl;
 
   // 曲名を表示し、前のエラーを消して、再生ボタンを押せるようにする
@@ -98,7 +141,8 @@ window.addEventListener("drop", (event) => event.preventDefault());
 // ===== 再生／停止 =====
 // エラーメッセージを表示し、再生ボタンを押せなくする
 function showPlaybackError() {
-  message.textContent = "このファイルは再生できませんでした。ブラウザが対応していない形式かもしれません。";
+  // 例：ALAC（.m4a）は Safari 以外では再生できないので、ここで案内する
+  message.textContent = "この形式はこのブラウザで再生できません。FLAC などをお試しください。";
   playButton.disabled = true;
 }
 
