@@ -3,7 +3,6 @@
 
 // ===== 画面の部品を取得 =====
 const audio = document.getElementById("audio");
-const dropZone = document.getElementById("drop-zone");
 const fileInput = document.getElementById("file-input");
 const fileName = document.getElementById("file-name");
 const playButton = document.getElementById("play-button");
@@ -113,31 +112,50 @@ fileInput.addEventListener("change", () => {
   fileInput.value = "";
 });
 
-// ドロップ領域の上にファイルが来ている間
-dropZone.addEventListener("dragover", (event) => {
+// ===== ドラッグ＆ドロップ（画面全体で受け付ける） =====
+// dragenter・dragleave は、画面の中の部品の上を通るたびに起きる。
+// そのたびに表示を消すとちらつくので、「入った回数 − 出た回数」を数え、0 になったときだけ消す。
+let dragDepth = 0;
+
+// ドラッグしているのがファイルかどうか（ページ内の文字を選んでドラッグした場合などは除く）
+function isFileDrag(event) {
+  return event.dataTransfer.types.includes("Files");
+}
+
+window.addEventListener("dragenter", (event) => {
+  if (!isFileDrag(event)) {
+    return;
+  }
+  dragDepth += 1;
+  document.body.classList.add("is-dragging"); // 画面全体に「ドロップして読み込む」を出す
+});
+
+window.addEventListener("dragleave", (event) => {
+  if (!isFileDrag(event)) {
+    return;
+  }
+  dragDepth -= 1;
+  if (dragDepth === 0) {
+    document.body.classList.remove("is-dragging");
+  }
+});
+
+// ファイルが上にある間
+window.addEventListener("dragover", (event) => {
   event.preventDefault(); // これがないとドロップを受け付けない
-  dropZone.classList.add("is-dragover"); // 見た目で「ここに落とせる」と伝える（CSSはステップ6）
 });
 
-// ドロップ領域から外れたとき
-dropZone.addEventListener("dragleave", () => {
-  dropZone.classList.remove("is-dragover");
-});
-
-// ドロップ領域にファイルが落とされたとき
-dropZone.addEventListener("drop", (event) => {
-  event.preventDefault(); // ブラウザがファイルを開いてしまうのを防ぐ
-  dropZone.classList.remove("is-dragover");
+// ファイルが落とされたとき
+window.addEventListener("drop", (event) => {
+  event.preventDefault(); // ブラウザがファイルを開いて画面が切り替わるのを防ぐ
+  dragDepth = 0;
+  document.body.classList.remove("is-dragging");
 
   const file = event.dataTransfer.files[0];
   if (file) {
     loadFile(file);
   }
 });
-
-// ドロップ領域の外に落としたとき、ブラウザがファイルを開いて画面が切り替わるのを防ぐ
-window.addEventListener("dragover", (event) => event.preventDefault());
-window.addEventListener("drop", (event) => event.preventDefault());
 
 // ===== 再生／停止 =====
 // エラーメッセージを表示し、再生ボタンを押せなくする
