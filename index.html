@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LOCAL SPIN</title>
+  <meta name="description" content="手元の音源をレコードの回転数で再生するWebアプリ。音源はブラウザ内だけで処理します。">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <main>
+    <h1>LOCAL SPIN</h1>
+    <p>手元の音源ファイルを、レコードの回転数で再生します。音源はこのブラウザの中だけで処理し、外部には送信しません。</p>
+
+    <!-- ファイル読み込み：ドラッグ＆ドロップ、または「ファイルを選ぶ」ボタン -->
+    <section id="drop-zone" aria-labelledby="file-heading">
+      <h2 id="file-heading">音源ファイル</h2>
+      <p>ここに音源ファイルをドロップするか、ボタンから選んでください。</p>
+      <label for="file-input">ファイルを選ぶ</label>
+      <input type="file" id="file-input" accept="audio/*">
+      <!-- 読み込んだ曲名を表示し、変化をスクリーンリーダーに伝える -->
+      <p id="file-name" aria-live="polite">未選択</p>
+    </section>
+
+    <!-- 回転するレコード（見た目だけの装飾なので、読み上げ対象から外す） -->
+    <div class="record" aria-hidden="true">
+      <div class="record-label"></div>
+    </div>
+
+    <section aria-labelledby="control-heading">
+      <h2 id="control-heading">操作</h2>
+
+      <!-- 再生／停止：ファイルを読み込むまでは押せない -->
+      <button type="button" id="play-button" disabled>再生</button>
+      <!-- エラーメッセージ（表示されたらすぐ読み上げる） -->
+      <p id="message" role="alert"></p>
+
+      <!-- 回転数：33／45／スクリューの3択（矢印キーで切り替えられる） -->
+      <fieldset>
+        <legend>回転数</legend>
+        <label><input type="radio" name="speed-mode" value="33" checked> 33回転</label>
+        <label><input type="radio" name="speed-mode" value="45"> 45回転</label>
+        <label><input type="radio" name="speed-mode" value="screw"> スクリュー</label>
+      </fieldset>
+
+      <!-- ピッチ：-8％〜+8％、0.1％刻み -->
+      <label for="pitch-slider">ピッチ</label>
+      <input type="range" id="pitch-slider" min="-8" max="8" step="0.1" value="0">
+      <output id="pitch-value" for="pitch-slider">0.0%</output>
+
+      <!-- 現在の再生速度（変わったら読み上げる） -->
+      <p>速度：<span id="speed-display" aria-live="polite">100.0%</span></p>
+    </section>
+
+    <!-- 音を鳴らす本体（画面には表示しない） -->
+    <audio id="audio"></audio>
+  </main>
+
+  <script src="js/main.js"></script>
+</body>
+</html>
