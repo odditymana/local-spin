@@ -16,6 +16,7 @@ const pitchResetButton = document.getElementById("pitch-reset");
 const seekBar = document.getElementById("seek-bar");
 const currentTimeText = document.getElementById("current-time");
 const durationText = document.getElementById("duration");
+const tonearmArm = document.getElementById("tonearm-arm");
 const record = document.querySelector(".record");
 
 // 今読み込んでいる曲のURL（次の曲を読み込むときに解放するため保存しておく）
@@ -324,7 +325,22 @@ function formatTimeForSpeech(seconds) {
   return Math.floor(seconds / 60) + "分" + Math.floor(seconds % 60) + "秒";
 }
 
-// 今の再生位置を、時間表示とシークバーに反映する
+// ===== トーンアーム =====
+// アームの角度（度）。27.4 で針先が一番外側の溝（中心から 44）、45.5 で一番内側の溝（中心から 22）に来る
+// （台座の直径を 100 とした SVG の座標で、針先とレコードの中心の距離から計算した値。
+//   内側は、ヘッドシェルがラベル（半径 約16.6）にかからない位置にしている）
+const TONEARM_START_ANGLE = 27.4;
+const TONEARM_END_ANGLE = 45.5;
+
+// 再生の進み具合（0〜1）に合わせて、アームを回す
+// 曲の始め（0）は外側、終わり（1）は内側
+function updateTonearm(progress) {
+  const angle = TONEARM_START_ANGLE + (TONEARM_END_ANGLE - TONEARM_START_ANGLE) * progress;
+  // SVG の transform：支点 (116, 16) へ移動してから、angle 度回す
+  tonearmArm.setAttribute("transform", "translate(116 16) rotate(" + angle + ")");
+}
+
+// 今の再生位置を、時間表示・シークバー・トーンアームに反映する
 function updatePosition() {
   currentTimeText.textContent = formatTime(audio.currentTime);
   // ドラッグ中につまみを書き換えると、つまみが指から逃げてしまうので書き換えない
@@ -333,6 +349,10 @@ function updatePosition() {
   }
   seekBar.setAttribute("aria-valuetext",
     formatTimeForSpeech(audio.currentTime) + " / " + formatTimeForSpeech(audio.duration));
+
+  // 進み具合 = 再生位置 ÷ 曲の長さ（長さが分からないうちは 0）
+  const progress = audio.duration > 0 ? audio.currentTime / audio.duration : 0;
+  updateTonearm(progress);
 }
 
 // 新しい曲を読み込んだときに、時間表示とシークバーを初期状態に戻す
@@ -342,6 +362,7 @@ function resetPosition() {
   seekBar.value = 0;
   durationText.textContent = formatTime(0);
   currentTimeText.textContent = formatTime(0);
+  updateTonearm(0); // アームを一番外側に戻す
 }
 
 // 曲の長さが分かったとき（loadedmetadata）
