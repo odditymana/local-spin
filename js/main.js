@@ -17,6 +17,7 @@ const seekBar = document.getElementById("seek-bar");
 const currentTimeText = document.getElementById("current-time");
 const durationText = document.getElementById("duration");
 const tonearmArm = document.getElementById("tonearm-arm");
+const turntable = document.querySelector(".turntable");
 const record = document.querySelector(".record");
 
 // 今読み込んでいる曲のURL（次の曲を読み込むときに解放するため保存しておく）
@@ -88,7 +89,7 @@ async function loadFile(file) {
       fileName.textContent = file.name;
       message.textContent = error.message;
       playButton.disabled = true;
-      seekBar.disabled = true;
+      setSeekEnabled(false);
       return;
     }
   }
@@ -171,7 +172,7 @@ function showPlaybackError() {
   // 例：ALAC（.m4a）は Safari 以外では再生できないので、ここで案内する
   message.textContent = "この形式はこのブラウザで再生できません。FLAC などをお試しください。";
   playButton.disabled = true;
-  seekBar.disabled = true;
+  setSeekEnabled(false);
 }
 
 // ボタンを押したら、止まっていれば再生、再生中なら停止（一時停止）する
@@ -355,9 +356,16 @@ function updatePosition() {
   updateTonearm(progress);
 }
 
+// 再生位置を操作できるかどうかを切り替える（シークバーと、レコードのクリック＝ニードルドロップ）
+function setSeekEnabled(enabled) {
+  seekBar.disabled = !enabled;
+  // 操作できるときだけ、レコードの上でカーソルを指の形にする（CSS の .is-ready）
+  turntable.classList.toggle("is-ready", enabled);
+}
+
 // 新しい曲を読み込んだときに、時間表示とシークバーを初期状態に戻す
 function resetPosition() {
-  seekBar.disabled = true; // 曲の長さが分かるまでは操作できない
+  setSeekEnabled(false); // 曲の長さが分かるまでは操作できない
   seekBar.max = 0;
   seekBar.value = 0;
   durationText.textContent = formatTime(0);
@@ -368,9 +376,42 @@ function resetPosition() {
 // 曲の長さが分かったとき（loadedmetadata）
 audio.addEventListener("loadedmetadata", () => {
   seekBar.max = audio.duration;
-  seekBar.disabled = false;
+  setSeekEnabled(true);
   durationText.textContent = formatTime(audio.duration);
   updatePosition();
+});
+
+// ===== ニードルドロップ（レコードをクリックした位置から再生） =====
+// 針を落とせる範囲（中心からの距離。台座の直径を 100 とした値で、トーンアームと同じ）
+const GROOVE_OUTER_RADIUS = 44; // 一番外側の溝（曲の始め）
+const GROOVE_INNER_RADIUS = 22; // 一番内側の溝（曲の終わり）
+
+turntable.addEventListener("click", (event) => {
+  // 曲を読み込む前（シークバーが押せないとき）は何もしない
+  if (seekBar.disabled) {
+    return;
+  }
+
+  // 台座の中心を求める
+  // （回転しているレコードではなく、回らない台座で測る。
+  //   回っている要素の四角い範囲は、角度によって大きさが変わってしまうため）
+  const rect = turntable.getBoundingClientRect();
+  const centerX = rect.left + rect.width / 2;
+  const centerY = rect.top + rect.height / 2;
+
+  // クリックした位置と中心の距離を、「台座の直径 = 100」の単位に直す
+  const distance = Math.hypot(event.clientX - centerX, event.clientY - centerY);
+  const radius = (distance / rect.width) * 100;
+
+  // 溝の範囲の外（ラベルや外側の縁）は無視する
+  if (radius > GROOVE_OUTER_RADIUS || radius < GROOVE_INNER_RADIUS) {
+    return;
+  }
+
+  // 外側ほど曲の始め、内側ほど曲の終わり
+  // 進み具合 =（外側の半径 − クリックした半径）÷（外側の半径 − 内側の半径）
+  const progress = (GROOVE_OUTER_RADIUS - radius) / (GROOVE_OUTER_RADIUS - GROOVE_INNER_RADIUS);
+  audio.currentTime = progress * audio.duration;
 });
 
 // 再生位置が進んだとき（再生中は1秒に4回ほど起きる。シークしたときも起きる）
