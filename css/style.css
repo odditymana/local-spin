@@ -1,1 +1,44 @@
-/* LOCAL SPIN のスタイル（ステップ5・6で書きます） */
+/* LOCAL SPIN のスタイル（ページ全体の見た目はステップ6で整えます） */
+
+/* ===== レコード ===== */
+/* 回転は JS（main.js）で transform: rotate() を書き換えて行う */
+.record {
+  width: min(70vw, 320px);
+  aspect-ratio: 1;          /* 縦横を同じ長さにする */
+  margin: 24px auto;
+  border-radius: 50%;       /* 正方形を円にする */
+  /* 同心円の模様をくり返して、レコードの溝に見せる */
+  background: repeating-radial-gradient(circle, #111 0 2px, #222 2px 4px);
+  display: grid;
+  place-items: center;      /* ラベルを中央に置く */
+  will-change: transform;   /* 回転を滑らかにするための、ブラウザへのヒント */
+}
+
+/* 中央のラベル */
+.record-label {
+  position: relative;
+  width: 36%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: #c8412f;
+  color: #fff;
+  font: bold 12px/1 sans-serif;
+  letter-spacing: 0.1em;
+  display: grid;
+  place-items: start center; /* 文字を上寄せにして、回転が目で分かるようにする */
+  padding-top: 22%;
+  box-sizing: border-box;
+}
+
+/* ラベル中央の穴 */
+.record-label::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 8%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: #eee;
+  transform: translate(-50%, -50%);
+}

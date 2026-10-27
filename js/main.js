@@ -12,6 +12,7 @@ const speedModeRadios = document.querySelectorAll('input[name="speed-mode"]');
 const pitchSlider = document.getElementById("pitch-slider");
 const pitchValue = document.getElementById("pitch-value");
 const speedDisplay = document.getElementById("speed-display");
+const record = document.querySelector(".record");
 
 // 今読み込んでいる曲のURL（次の曲を読み込むときに解放するため保存しておく）
 let currentUrl = null;
@@ -223,3 +224,61 @@ pitchSlider.addEventListener("input", updateSpeed);
 
 // 最初の表示を整える（ブラウザが前回の選択を復元している場合にも合わせるため）
 updateSpeed();
+
+// ===== 回転するレコード =====
+// 33⅓回転のレコードは 1分（60秒）で 33⅓周 する → 1周 1.8秒
+const SECONDS_PER_TURN = 60 / (100 / 3);
+
+// OS の「動きを減らす」設定（prefers-reduced-motion）を調べるためのもの
+const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+
+let angle = 0;           // 今のレコードの角度（0〜360度）
+let lastTime = null;     // 前回描いたときの時刻（ミリ秒）
+let animationId = null;  // 回転中のときの requestAnimationFrame の番号（止めるときに使う）
+
+// 画面を描き直すたびに呼ばれ、経過時間ぶんだけ角度を進める
+// （time は requestAnimationFrame が渡してくれる、今の時刻）
+function rotateRecord(time) {
+  if (lastTime !== null) {
+    const elapsedSeconds = (time - lastTime) / 1000;
+    // 1秒あたりの角度 = 360度 ÷ 1周の秒数 × 再生速度
+    const degreesPerSecond = (360 / SECONDS_PER_TURN) * audio.playbackRate;
+    // 角度を足し、% 360 で 0〜360 の範囲に収める
+    angle = (angle + degreesPerSecond * elapsedSeconds) % 360;
+    record.style.transform = "rotate(" + angle + "deg)";
+  }
+  lastTime = time;
+  // 次に画面を描き直すときにも、この関数を呼んでもらう
+  animationId = requestAnimationFrame(rotateRecord);
+}
+
+// 回転を始める（すでに回っている・動きを減らす設定・停止中のときは何もしない）
+function startRotation() {
+  if (animationId !== null || reducedMotion.matches || audio.paused) {
+    return;
+  }
+  lastTime = null; // 止まっていた時間を経過時間に含めないよう、測り直す
+  animationId = requestAnimationFrame(rotateRecord);
+}
+
+// 回転を止める（角度はそのまま残るので、次は同じ角度から回り出す）
+function stopRotation() {
+  if (animationId !== null) {
+    cancelAnimationFrame(animationId);
+    animationId = null;
+  }
+}
+
+// 音が実際に鳴り始めたら回し、止まったら止める
+audio.addEventListener("playing", startRotation);
+audio.addEventListener("pause", stopRotation);
+audio.addEventListener("ended", stopRotation);
+
+// 再生中に「動きを減らす」設定が切り替わったら、その場で止める／回し直す
+reducedMotion.addEventListener("change", () => {
+  if (reducedMotion.matches) {
+    stopRotation();
+  } else {
+    startRotation();
+  }
+});
