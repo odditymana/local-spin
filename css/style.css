@@ -148,6 +148,7 @@ body {
 .tonearm-base   { fill: var(--color-plinth); stroke: var(--color-border); stroke-width: 0.6; }
 .tonearm-weight { fill: #8a8e96; }
 .tonearm-rod    { fill: #d4d6da; }
+.tonearm-lift   { stroke: #d4d6da; stroke-width: 1; stroke-linecap: round; } /* 棒（幅 1.6）より細くして控えめに */
 .tonearm-head   { fill: #3a3c42; stroke: #d4d6da; stroke-width: 0.5; }
 .tonearm-pivot  { fill: #d4d6da; }
 
