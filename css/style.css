@@ -177,6 +177,8 @@ body {
     /* ランアウト：中心から半径 22 までを、溝のない平らな黒で塗る（ラベルはこの上に乗る） */
     /* closest-side で 100% ＝ レコードの半径 46（台座の直径 = 100 の座標）になるので、22 は 100% * 22 / 46 */
     radial-gradient(circle closest-side, #1c1c1c calc(100% * 22 / 46), transparent 0),
+    /* リードイン：半径 44 からレコードの外周（46）までを、同じ平らな黒で塗る */
+    radial-gradient(circle closest-side, transparent calc(100% * 44 / 46), #1c1c1c 0),
     /* 同心円の模様をくり返して、レコードの溝に見せる */
     repeating-radial-gradient(circle, #111 0 2px, #222 2px 4px);
   display: grid;
