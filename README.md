@@ -1,10 +1,10 @@
-# LOCAL SPIN
+# TEST PRESSING
 
 手元の音源ファイルを、ピッチコントロール付きのターンテーブルのように、回転数とピッチを切り替えて再生する Web アプリです。
 
-**公開ページ：** https://odditymana.github.io/local-spin/
+**公開ページ：** https://odditymana.github.io/test-pressing/
 
-![LOCAL SPIN の画面](docs/screenshot.png)
+![TEST PRESSING の画面](docs/screenshot.png)
 
 ## 作った理由
 
@@ -107,7 +107,7 @@ HTML・CSS・JavaScript のみで作っていて、フレームワークやラ�
 ## ファイル構成
 
 ```
-local-spin/
+test-pressing/
 ├── index.html            画面の骨組み
 ├── css/
 │   └── style.css         見た目（レイアウト・レコード・操作パネル）
