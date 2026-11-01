@@ -173,8 +173,12 @@ body {
   width: 92%;                   /* 台座より一回り小さくして、縁に台座が見えるようにする */
   aspect-ratio: 1;
   border-radius: 50%;
-  /* 同心円の模様をくり返して、レコードの溝に見せる */
-  background: repeating-radial-gradient(circle, #111 0 2px, #222 2px 4px);
+  background:
+    /* ランアウト：中心から半径 22 までを、溝のない平らな黒で塗る（ラベルはこの上に乗る） */
+    /* closest-side で 100% ＝ レコードの半径 46（台座の直径 = 100 の座標）になるので、22 は 100% * 22 / 46 */
+    radial-gradient(circle closest-side, #1c1c1c calc(100% * 22 / 46), transparent 0),
+    /* 同心円の模様をくり返して、レコードの溝に見せる */
+    repeating-radial-gradient(circle, #111 0 2px, #222 2px 4px);
   display: grid;
   place-items: center;          /* ラベルを中央に置く */
   will-change: transform;       /* 回転を滑らかにするための、ブラウザへのヒント */
