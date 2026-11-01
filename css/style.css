@@ -9,7 +9,9 @@
   --color-border: #767a83;      /* 枠線・フェーダーの溝（パネルとの差 3:1 以上） */
   --color-text: #ececec;        /* 本文 */
   --color-text-muted: #a8a8ad;  /* 補足の文字 */
-  --color-accent: #d04431;      /* ラベルの赤（面に使う。白い文字と 4.5:1 以上、パネルと 3:1 以上） */
+  --color-accent: #d04431;      /* ボタンの赤（面に使う。白い文字と 4.5:1 以上、パネルと 3:1 以上） */
+  --color-label-paper: #efe7d2; /* レコードのラベル（少し黄みがかった、生成りの紙の色） */
+  --color-label-ink: #2e2d2b;   /* ラベルのスタンプのインク（グレーがかった黒。紙との差は約 12:1） */
   --color-accent-light: #ff6b57; /* 暗い背景の上に置く差し色（文字にも使える明るさ） */
   --color-focus: #ffd166;       /* キーボード操作中のフォーカス枠 */
 
@@ -192,23 +194,32 @@ body {
   width: 36%;
   aspect-ratio: 1;
   border-radius: 50%;
-  background: var(--color-accent);
+  background: var(--color-label-paper);
 }
 
-/* ラベルの文字（上寄せにして、回っていることが目で分かるようにする） */
-.record-label-text {
+/* ラベルの文字を描く SVG（ラベルいっぱいに広げる） */
+.label-svg {
   position: absolute;
-  top: 22%;                     /* ラベルの高さの 22% の位置 */
-  left: 0;
-  right: 0;
-  text-align: center;
-  color: #fff;
-  /* 文字の大きさはレコードの大きさに合わせる（台座の直径の 2.3%） */
-  font: bold calc(var(--plinth-size) * 0.023) / 1 sans-serif;
-  letter-spacing: 0.1em;
+  inset: 0;
+  width: 100%;
+  height: 100%;
 }
 
-/* ラベル中央の穴 */
+/* スタンプの文字（上寄せにして、回っていることが目で分かるようにする） */
+/* 大きさなどの数値は viewBox の座標（ラベルの直径 = 100）なので、ラベルと一緒に伸び縮みする */
+.label-stamp {
+  fill: var(--color-label-ink);
+  font-family: Helvetica, Arial, sans-serif; /* 端末に入っている、飾り気のない書体（太字で使う） */
+  font-size: 12px;
+  font-weight: bold;
+  letter-spacing: 0.6px;
+  text-anchor: middle;          /* x の位置を文字の中央にそろえる */
+  /* スマホでは文字が小さいので、かすれのない弱いフィルターにする（PC 用は下のメディアクエリ） */
+  /* フィルターは回転する .record ではなく、この文字だけにかける（重さ対策） */
+  filter: url(#stamp-soft);
+}
+
+/* ラベル中央の穴（穴から見える、ターンテーブルの銀色の軸） */
 .record-label::after {
   content: "";
   position: absolute;
@@ -217,7 +228,8 @@ body {
   width: 8%;
   aspect-ratio: 1;
   border-radius: 50%;
-  background: #eee;
+  background: #c3c6cb;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.6); /* 暗い輪を付けて、明るいラベルの上でも見えるようにする */
   transform: translate(-50%, -50%);
 }
 
@@ -564,6 +576,11 @@ body {
     align-items: center;
     padding: var(--gap);
     padding-top: 0;
+  }
+
+  /* PC ではラベルが大きいので、かすれまで入れたフィルターにする */
+  .label-stamp {
+    filter: url(#stamp);
   }
 
   /* 操作パネルの高さを台座にそろえる
